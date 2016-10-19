@@ -1,0 +1,123 @@
+* aerospike-clj
+
+/WARNING - ALPHA QUALITY, SUBJECT TO BUGS AND API CHANGES/
+
+An idiomatic Clojure wrapper for Aerospike's Java client
+
+** Usage
+
+#+begin_src clojure
+(require '[aerospike :as as])
+
+;; create a client
+(def c (as/client (as/client-policy) "localhost" 3000))
+
+;; or create a client with multiple seed nodes
+(as/client (as/client-policy) {"node-a.foo.bar" 3000
+                               "node-b.foo.bar" 3000})
+
+(as/nodes c)
+
+(as/node-names c)
+
+;; defining keys
+(def user-1 (as/key "test" "users" 1))
+
+(def user-2 (as/key "test" "users" 2))
+
+;; put takes map, the keys can be strings or keywords
+(as/put c user-1 {:user/name "red"
+                  :user/level 1000000
+                  :user/items ["magic-wand","staff"]
+                  :user/props {:strength 18
+                               :intelligence 3
+                               :wisdom 3}})
+
+(as/put c user-2 {:user/name "blue"
+                  :user/level 1234
+                  :user/items ["shield"]
+                  :user/props {:strength 5
+                               :intelligence 12}})
+
+(as/get c (policy) user-1)
+
+;;         +- policies can be nil, in which
+;;         |  case the clients defaults are used
+;;         v
+(as/get c nil user-1)
+
+(as/exists c nil user-1)
+
+(as/delete c nil user-2)
+
+(as/add c nil user-1 {:user/level 10})
+
+;; String operations
+(as/append c nil user-1 {:user/name " player"})
+
+(as/prepend c nil user-1 {:user/name "The "})
+
+;; operate takes mutiple operations, see docstring for details
+(-> (as/operate c nil user-1
+                [:add :user/level 1]
+                [:append :user/name "!"]
+                :get)
+    (as/bins))
+
+;; bins convert Record bin to a map
+(as/bins (as/get c nil user-1))
+
+;; get allows you to optionally select the bins to fetch
+(as/bins (as/get c nil user-1 :user/name))
+
+(as/expiration (as/get c nil user-1))
+
+(as/generation (as/header c nil user-1))
+
+;; batch operations, start with batch-, and take a sequence of keys
+
+(as/batch-exists c (as/batch-policy) [user-1 user-2])
+
+(for [record (as/batch-get c nil [user-1 user-2] :user/name)]
+  (as/bins record))
+
+(for [record (as/batch-header c nil [user-1 user-2])]
+  (as/generation record))
+
+;; Convenience functions to create policies
+(as/write-policy)
+
+(as/batch-policy)
+
+;; Policy functions optionally take a map of options,
+;; keywords will automatically be coerced to enum values
+(as/write-policy {:commit-level :commit-level/commit-all})
+
+(let [p (batch-policy {:max-concurrent-threads 10
+                       :max-concurrent-nodes 2})]
+  (for [record (as/batch-get c p [user-1 user-2] :user/name)]
+    (as/bins record)))
+
+;; see their docstrings for as list of options and allowed values
+(clojure.repl/doc as/write-policy)
+
+;; Example: a WritePolicy to set the expiration
+(as/touch c (as/write-policy {:expiration 20}) user-1)
+
+;; get time to live (in seconds)
+(as/ttl (as/get c nil user-1))
+#+end_src
+
+** Limitations
+
+The following functionality is not yet wrapped:
+- AsyncClient
+- Queries
+- UDF
+- Large datatypes
+
+** License
+
+Copyright © 2016 Chris
+
+Distributed under the Eclipse Public License, the same as Clojure.

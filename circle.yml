@@ -1,0 +1,12 @@
+machine:
+  services:
+    - docker
+
+dependencies:
+  override:
+    - docker pull aerospike/aerospike-server:3.9.1-1
+
+test:
+  override:
+    - docker run -d -p 3000:3000 aerospike/aerospike-server:3.9.1-1; sleep 10
+    - lein midje
