@@ -1,5 +1,6 @@
 (ns aerospike.reflect
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [clojure.reflect]))
 
 (let [camelcase-pattern (re-pattern (str/join "|"
                                               ["(?<=[A-Z])(?=[A-Z][a-z])"
